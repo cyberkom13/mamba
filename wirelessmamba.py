@@ -6,7 +6,6 @@ import os.path
 
 
 Menu="""
-                                                                                                        
 
                                                                                                                                                      
 @@@  @@@  @@@  @@@  @@@@@@@   @@@@@@@@  @@@       @@@       @@@@@@@@   @@@@@@    @@@@@@      @@@@@@@@@@    @@@@@@   @@@@@@@@@@   @@@@@@@    @@@@@@   
@@ -20,10 +19,7 @@ Menu="""
  :::: :: :::    ::  ::   :::   :: ::::   :: ::::   :: ::::   :: ::::  :::: ::   :::: ::      :::     ::   ::   :::  :::     ::    :: ::::  ::   :::  
   :: :  : :    :     :   : :  : :: ::   : :: : :  : :: : :  : :: ::   :: : :    :: : :        :      :     :   : :   :      :    :: : ::    :   : :  
                                                                                                                                                      
-
-
-
- from ascii.co.uk
+Generated at: ascii.co.uk
 ______________________________
 
 MAMBA's QUICK WIRELESS SCAN 
@@ -89,6 +85,7 @@ def mac_restorage(interface):
 
 def monitor_mode_on(choosen_interface):
     #os.system(f"sudo airmon-ng {choosen_interface} start > monitor.txt")
+
     print("INTERFACE SELECTED ON MANAGED MODE\n")
     os.system(f"sudo airmon-ng|grep {choosen_interface}")
     print("\n")
@@ -135,28 +132,109 @@ def restore_services():
 def dump_all(choosen_interfaces):
     choosen_interface=choosen_interfaces
     os.system(f"sudo airodump-ng -M {choosen_interface}|grep WPA")
-
+    
 def dump_ap0(monitor_interface, ap_bssid, channel):
     random_n=random.randint(1,9999)
     monitor_interface=monitor_interface
     ap_bssid=ap_bssid
     channel=channel
+    os.system(f"echo bssid={ap_bssid}>> monitor.txt")
     os.system(f"sudo airodump-ng -M --bssid {ap_bssid} --channel {channel} -w {random_n} {monitor_interface}")
-
+    
 def dump_ap1(monitor_interface, ap_bssid, essid):
     random_n=random.randint(1,9999)
     monitor_interface=monitor_interface
     ap_bssid=ap_bssid
     essid=essid
+    os.system(f"echo bssid={ap_bssid}/essid={essid}>> monitor.txt")
     os.system(f"sudo airodump-ng -M --bssid {ap_bssid} --essid {essid} -w {random_n} {monitor_interface}")
-
+    
 def dump_ap2(monitor_interface, ap_bssid, essid, channel):
     random_n=random.randint(1,9999)
     monitor_interface=monitor_interface
     ap_bssid=ap_bssid
     essid=essid
     channel=channel
+    os.system(f"echo bssid={ap_bssid}/essid={essid}>> monitor.txt")
     os.system(f"sudo airodump-ng -M --bssid {ap_bssid} --essid {essid} --channel {channel} -w {random_n} {monitor_interface}")
+
+def check_networks(choosen_interface):
+    os.system(f"sudo iwlist {choosen_interface} scan > networks.txt")
+
+def get_networks():
+    net_file=open("networks.txt","r")
+    net_lines=net_file.readlines()
+
+    mac_addresses=[]
+    channels=[]
+    essids=[]
+
+    net_file.close()
+
+
+    for i in net_lines:
+        if re.search("Address: ",i):
+            mac_address_line=i.replace("\n","")
+            mac_address_line=mac_address_line.split("Address: ")
+            mac_addresses.append(mac_address_line[1])
+
+        if re.search("Channel:",i):
+            channel_line=i.replace("\n","")
+            channel_line=channel_line.split(":")
+            channels.append(channel_line[1])
+
+        if re.search("ESSID:",i):
+            essid_line=i.replace("\n","")
+            essid_line=essid_line.split(":")
+            essids.append(essid_line[1])
+
+    return mac_addresses,channels,essids
+    
+def show_networks(device_mac_address_list, channel_list, essid_list):
+
+    if len(device_mac_address_list) == len(channel_list) and len(device_mac_address_list) == len(essid_list):
+
+        counter=0
+
+        for i in range(len(device_mac_address_list)):
+            #print(f"{counter}. BSSID:{device_mac_address_list[counter]}, CHANNEL:{channel_list[counter]}, ESSID:{essid_list[counter]}")
+            print(f"{i}. BSSID:{device_mac_address_list[i]}, CHANNEL:{channel_list[i]}, ESSID:{essid_list[i]}")
+            counter +=1 
+
+        print("\n")
+    
+    else: 
+        print("Error with the different list length...")
+        sys.exit()
+
+
+#1.BSSID/CHANNEL (Just for unknown ESSIDs)
+#2.BSSID/ESSID
+#3.BSSID/CHANNEL/ESSID
+
+
+def select_network_BC(device_mac_address_list, channel_list): 
+
+    selection=int(input("Please select an option: "))
+    print(f"{selection}. BSSID:{device_mac_address_list[selection]}, CHANNEL:{channel_list[selection]}")
+    
+
+    return device_mac_address_list[selection], channel_list[selection]
+
+def select_network_BE(device_mac_address_list, essid_list): 
+
+    selection=int(input("Please select an option: "))
+    print(f"{selection}. BSSID:{device_mac_address_list[selection]}, ESSID:{essid_list[selection]}")
+
+    return device_mac_address_list[selection], essid_list[selection]
+
+def select_network_BCE(device_mac_address_list, channel_list, essid_list):
+
+    selection=int(input("Please select an option: "))
+    print(f"{selection}. BSSID:{device_mac_address_list[selection]}, CHANNEL:{channel_list[selection]}, ESSID:{essid_list[selection]}")
+
+    return device_mac_address_list[selection], channel_list[selection], essid_list[selection]
+
 
 #PART 1  WIRELESS INTERFACE EXTRACTION
 
@@ -171,9 +249,11 @@ print("\n")
 interfaces()
 interfaces, phys=get_interfaces("interfaces.txt")
 print(interfaces)
-print(phys)
+
 print("\n")
+
 selected_interface=input("Please insert the interface you want to use: ")
+check_networks(selected_interface)
 
 print("\n")
 
@@ -208,13 +288,14 @@ dump_all(monitor_interface)
 
 while continuity== True:
 
-    print("Which AP doy want to monitor?")
+    print("Which AP do you want to monitor?")
     print("\n")
     print("According what you'd like to do, select the following options:")
-    print("1.BSSID/CHANNEL")
+    print("1.BSSID/CHANNEL (Just for unknown ESSIDs)")
     print("2.BSSID/ESSID")
     print("3.BSSID/CHANNEL/ESSID")
-    print("4.Exit")
+    print("4.Manual Mode")
+    print("5.Exit")
     print("\n")
 
     option=input("Select options: ")
@@ -222,21 +303,92 @@ while continuity== True:
 
     if option == "1":
         continuity= False 
-        bssid=input("Insert BSSID: ")
-        channel=input("Insert channel: ")
+
+        bssids=[]
+        channels=[]
+        essids=[]
+
+        bssids, channels, essids=get_networks()
+        show_networks(bssids,channels,essids)
+        bssid, channel=select_network_BC(bssids,channels)
+
         dump_ap0(monitor_interface, bssid, channel)
+
     elif option == "2": 
         continuity= False 
-        bssid=input("Insert BSSID: ")
-        essid=input("Insert ESSID: ")
+
+        bssids=[]
+        channels=[]
+        essids=[]
+
+        bssids, channels, essids=get_networks()
+        show_networks(bssids,channels,essids)
+        bssid, essid=select_network_BE(bssids,essids)
+
         dump_ap1(monitor_interface, bssid, essid)
+
     elif option == "3": 
         continuity= False 
-        bssid=input("Insert BSSID: ")
-        essid=input("Insert ESSID: ")
-        channel=input("Insert channel: ")
+
+        bssids=[]
+        channels=[]
+        essids=[]
+        bssids, channels, essids=get_networks()
+        show_networks(bssids,channels,essids)
+        bssid, channel, essid=select_network_BCE(bssids, channels, essids)
+
         dump_ap2(monitor_interface, bssid, essid, channel)
-    elif option =="4": 
+
+    
+    elif option == "4": 
+
+        continuity= False
+
+        continuity2=True
+
+        while continuity2 == True:
+             
+
+            print("\n")
+            print("MANUAL MODE")
+            print("Which AP do you want to monitor?")
+            print("\n")
+            print("According what you'd like to do, select the following options:")
+            print("1.BSSID/CHANNEL (Just for unknown ESSIDs)")
+            print("2.BSSID/ESSID")
+            print("3.BSSID/CHANNEL/ESSID")
+            print("4.Exit")
+            print("\n")
+
+            option2=input("Select options: ")
+
+            if option2=="1":
+                continuity2= False
+                print("\n")
+                bssid= input("Insert BSSID: ")
+                channel = input("Insert Channel: ")
+                dump_ap0(monitor_interface, bssid, channel)
+                
+            elif option2=="2":
+                continuity2= False
+                bssid= input("Insert BSSID: ")
+                essid = input("Insert ESSID: ")
+                dump_ap1(monitor_interface, bssid, essid)
+
+                
+            elif option2=="3":
+                continuity2= False
+                print("\n")
+                bssid= input("Insert BSSID: ")
+                channel = input("Insert Channel: ")
+                essid = input("Insert ESSID: ")
+
+                dump_ap2(monitor_interface, bssid, essid, channel)
+
+            elif option2=="4":
+                continuity2= False
+
+    elif option =="5": 
         print("See you!")
         print("\n")
         continuity= False 
@@ -245,7 +397,6 @@ while continuity== True:
         print("No-Option was selected...")
         print("Please try again!")
         print("\n")
-
 
 monitor_mode_off(monitor_interface)
 
